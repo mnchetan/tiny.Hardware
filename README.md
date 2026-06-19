@@ -162,7 +162,7 @@ During startup, the application loads the hardware configuration from `hardware.
 Use **Postman**, **Insomnia**, **curl**, or the built-in **Swagger UI** to invoke the scanner start endpoint:
 
 ```http
-POST http://localhost:5168/api/Hardware/Start/Scanner1_TCP
+GET http://localhost:5168/api/Hardware/Start/Scanner1_TCP
 ```
 
 ### Expected Output
