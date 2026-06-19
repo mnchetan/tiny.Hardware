@@ -1,0 +1,5 @@
+<Solution>
+  <Project Path="tiny.Hardware.Api/tiny.Hardware.Api.csproj" />
+  <Project Path="tiny.Hardware.Core/tiny.Hardware.Core.csproj" />
+  <Project Path="tiny.Hardware.Simulator/tiny.Hardware.Simulator.csproj" />
+</Solution>

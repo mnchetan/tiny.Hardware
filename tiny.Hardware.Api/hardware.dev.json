@@ -1,0 +1,44 @@
+﻿{
+  "Scanner1_TCP": {
+    "Query": "ContinuousRead",
+    "ExecutionType": "Stream",
+    "Protocol": "TcpIp",
+    "IpAddress": "127.0.0.1",
+    "Port": 9000,
+    "DefaultFallbackEncoding": "ASCII",
+    "ExternalDllPathImplementingIProcessHardwareData_PreProcessing": "",
+    "ExternalDllNameImplementingIProcessHardwareData_PreProcessing": "",
+    "FullyQualifiedNameOfClass_PreProcessing": "",
+    "ExternalDllPathImplementingIProcessHardwareData_PostProcessing": "",
+    "ExternalDllNameImplementingIProcessHardwareData_PostProcessing": "",
+    "FullyQualifiedNameOfClass_PostProcessing": "tiny.Hardware.Api.Plugins.ScannerMockParser"
+  },
+  "Conveyor_Modbus": {
+    "Query": "ReadHoldingRegisters",
+    "ExecutionType": "Poll",
+    "Protocol": "Modbus",
+    "IpAddress": "192.168.1.50",
+    "Port": 502,
+    "DefaultFallbackEncoding": "HEX",
+    "ExternalDllPathImplementingIProcessHardwareData_PreProcessing": "",
+    "ExternalDllNameImplementingIProcessHardwareData_PreProcessing": "",
+    "FullyQualifiedNameOfClass_PreProcessing": "",
+    "ExternalDllPathImplementingIProcessHardwareData_PostProcessing": "",
+    "ExternalDllNameImplementingIProcessHardwareData_PostProcessing": "",
+    "FullyQualifiedNameOfClass_PostProcessing": "tiny.Hardware.Api.Plugins.ConveyorMockParser"
+  },
+  "Scale_Serial": {
+    "Query": "ReadWeight",
+    "ExecutionType": "Stream",
+    "Protocol": "Serial",
+    "IpAddress": "COM3",
+    "Port": 9600,
+    "DefaultFallbackEncoding": "UTF8",
+    "ExternalDllPathImplementingIProcessHardwareData_PreProcessing": "",
+    "ExternalDllNameImplementingIProcessHardwareData_PreProcessing": "",
+    "FullyQualifiedNameOfClass_PreProcessing": "",
+    "ExternalDllPathImplementingIProcessHardwareData_PostProcessing": "",
+    "ExternalDllNameImplementingIProcessHardwareData_PostProcessing": "",
+    "FullyQualifiedNameOfClass_PostProcessing": "tiny.Hardware.Api.Plugins.ScaleMockParser"
+  }
+}
