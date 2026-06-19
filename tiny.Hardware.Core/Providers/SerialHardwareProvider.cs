@@ -35,6 +35,20 @@ namespace tiny.Hardware.Core.Providers
             }
         }
 
-        public ValueTask DisposeAsync() => ValueTask.CompletedTask;
+        public ValueTask DisposeAsync()
+        {
+            GC.SuppressFinalize(this);
+            return ValueTask.CompletedTask;
+        }
+
+        // Add this method inside SerialHardwareProvider
+        public async Task<bool> WriteAsync(byte[] payload, CancellationToken ct = default)
+        {
+            // Simulate a successful write to a fake device
+            string simulatedPayload = System.Text.Encoding.ASCII.GetString(payload);
+            Global.LogDebug($"[MOCK TX] Successfully transmitted command to hardware: {simulatedPayload}");
+            await Task.CompletedTask;
+            return true;
+        }
     }
 }

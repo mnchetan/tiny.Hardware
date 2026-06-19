@@ -9,8 +9,12 @@ namespace tiny.Hardware.Core.Providers
     [DebuggerStepThrough]
     public class TcpHardwareProvider : IHardwareProvider
     {
+#pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider adding the 'required' modifier or declaring as nullable.
         private TcpClient _client;
+#pragma warning restore CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider adding the 'required' modifier or declaring as nullable.
+#pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider adding the 'required' modifier or declaring as nullable.
         private NetworkStream _stream;
+#pragma warning restore CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider adding the 'required' modifier or declaring as nullable.
 
         public async Task ConnectAsync(HardwareSpecification spec, CancellationToken ct = default)
         {
@@ -26,7 +30,9 @@ namespace tiny.Hardware.Core.Providers
 
             while (!ct.IsCancellationRequested)
             {
+#pragma warning disable CS8600 // Converting null literal or possible null value to non-nullable type.
                 byte[] payloadToYield = null;
+#pragma warning restore CS8600 // Converting null literal or possible null value to non-nullable type.
 
                 try
                 {
@@ -70,8 +76,31 @@ namespace tiny.Hardware.Core.Providers
             }
         }
 
+        // Add this method inside TcpHardwareProvider
+        public async Task<bool> WriteAsync(byte[] payload, CancellationToken ct = default)
+        {
+            if (_client == null || !_client.Connected || _stream == null)
+            {
+                Global.LogError("Cannot write to TCP socket. Connection is not open.", null);
+                return false;
+            }
+
+            try
+            {
+                await _stream.WriteAsync(payload, ct);
+                Global.LogDebug($"Successfully wrote {payload.Length} bytes to TCP socket.");
+                return true;
+            }
+            catch (Exception ex)
+            {
+                Global.LogError("Failed to write to TCP socket.", ex);
+                return false;
+            }
+        }
+
         public async ValueTask DisposeAsync()
         {
+            GC.SuppressFinalize(this);
             _stream?.Dispose();
             _client?.Dispose();
             await Task.CompletedTask;

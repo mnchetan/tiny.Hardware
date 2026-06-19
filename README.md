@@ -106,19 +106,19 @@ Starting a stream provisions the appropriate worker and begins piping data into 
 ### Scanner (TCP/IP)
 
 ```http
-POST http://localhost:5168/api/Hardware/Start/Scanner1_TCP
+GET http://localhost:5168/api/Hardware/Start/Scanner1_TCP
 ```
 
 ### Conveyor (Modbus)
 
 ```http
-POST http://localhost:5168/api/Hardware/Start/Conveyor_Modbus
+GET http://localhost:5168/api/Hardware/Start/Conveyor_Modbus
 ```
 
 ### Scale (Serial Port)
 
 ```http
-POST http://localhost:5168/api/Hardware/Start/Scale_Serial
+GET http://localhost:5168/api/Hardware/Start/Scale_Serial
 ```
 
 ## Stop Hardware Streams
@@ -126,11 +126,21 @@ POST http://localhost:5168/api/Hardware/Start/Scale_Serial
 Stopping a stream triggers the `CancellationToken`, ensuring connections are closed cleanly and resources are released properly.
 
 ```http
-POST http://localhost:5168/api/Hardware/Stop/Scanner1_TCP
-POST http://localhost:5168/api/Hardware/Stop/Conveyor_Modbus
-POST http://localhost:5168/api/Hardware/Stop/Scale_Serial
+GET http://localhost:5168/api/Hardware/Stop/Scanner1_TCP
+GET http://localhost:5168/api/Hardware/Stop/Conveyor_Modbus
+GET http://localhost:5168/api/Hardware/Stop/Scale_Serial
 ```
 
+### Write back to the hardware
+
+```http
+POST http://localhost:5168/api/Hardware/Write/Scanner_Mock
+Content-Type: application/json
+{
+  "Data": "RESET_COMMAND_01",
+  "EncodingFormat": "ASCII"
+}
+```
 ---
 
 # 🖥️ Running & Testing Locally

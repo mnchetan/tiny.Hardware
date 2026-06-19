@@ -1,4 +1,6 @@
 ﻿using Microsoft.AspNetCore.Mvc;
+using System.Text;
+using tiny.Hardware.Api.DataObjects;
 using tiny.Hardware.Core.Configurations;
 using tiny.Hardware.Core.DataObjects;
 using tiny.Hardware.Core.Engine;
@@ -41,6 +43,52 @@ namespace tiny.Hardware.Api.Controllers
         {
             _orchestrator.StopMonitoring(key);
             return Ok(new { message = $"Stopped monitoring {key}." });
+        }
+
+        [HttpPost("Write/{key}")]
+        public async Task<IActionResult> Write(string key, [FromBody] HardwareWritePayload payload)
+        {
+            Global.LogDebug($"Received Write Request for Hardware Config Key: {key}");
+
+            if (string.IsNullOrWhiteSpace(payload?.Data))
+                return BadRequest("Payload data cannot be empty.");
+
+            byte[] bytesToWrite;
+
+            // Handle encoding mapping
+            try
+            {
+                bytesToWrite = payload.EncodingFormat.ToUpperInvariant() switch
+                {
+                    "HEX" => ConvertFromHex(payload.Data),
+                    "UTF8" => Encoding.UTF8.GetBytes(payload.Data),
+                    "ASCII" => Encoding.ASCII.GetBytes(payload.Data),
+                    _ => Encoding.ASCII.GetBytes(payload.Data)
+                };
+            }
+            catch (Exception ex)
+            {
+                return BadRequest($"Invalid payload format for encoding {payload.EncodingFormat}. Error: {ex.Message}");
+            }
+
+            bool success = await _orchestrator.WriteToDeviceAsync(key, bytesToWrite);
+
+            if (success)
+                return Ok(new { message = $"Command successfully dispatched to {key}." });
+            else
+                return StatusCode(500, new { message = $"Failed to dispatch command to {key}. Ensure device is Started." });
+        }
+
+        // Helper for Modbus/PLC hex strings
+        private byte[] ConvertFromHex(string hex)
+        {
+            hex = hex.Replace("-", "").Replace(" ", "");
+            byte[] bytes = new byte[hex.Length / 2];
+            for (int i = 0; i < bytes.Length; i++)
+            {
+                bytes[i] = Convert.ToByte(hex.Substring(i * 2, 2), 16);
+            }
+            return bytes;
         }
     }
 }

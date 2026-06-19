@@ -8,11 +8,4 @@ namespace tiny.Hardware.Core.Configurations
         [DebuggerHidden]
         Dictionary<string, HardwareSpecification> HardwareSpecifications { get; set; }
     }
-
-    [DebuggerStepThrough]
-    public class TinyHardwareConfigurations : ITinyHardwareConfigurations
-    {
-        [DebuggerHidden]
-        public Dictionary<string, HardwareSpecification> HardwareSpecifications { get; set; } = [];
-    }
 }

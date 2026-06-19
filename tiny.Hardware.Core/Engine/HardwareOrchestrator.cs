@@ -8,47 +8,70 @@ using tiny.WebApi.DataObjects;
 namespace tiny.Hardware.Core.Engine
 {
     [DebuggerStepThrough]
-    public class HardwareOrchestrator
+    public class HardwareOrchestrator(InternalHardwareBus bus)
     {
-        private readonly ConcurrentDictionary<string, CancellationTokenSource> _activeMonitors = new();
-        private readonly InternalHardwareBus _bus;
-
-        public HardwareOrchestrator(InternalHardwareBus bus)
+        // NEW: Internal wrapper to hold state
+        private class ActiveDeviceState
         {
-            _bus = bus;
+#pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider adding the 'required' modifier or declaring as nullable.
+            public IHardwareProvider Provider { get; set; }
+#pragma warning restore CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider adding the 'required' modifier or declaring as nullable.
+#pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider adding the 'required' modifier or declaring as nullable.
+            public CancellationTokenSource Cts { get; set; }
+#pragma warning restore CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider adding the 'required' modifier or declaring as nullable.
         }
+
+        private readonly ConcurrentDictionary<string, ActiveDeviceState> _activeDevices = new();
+        private readonly InternalHardwareBus _bus = bus;
 
         public async Task StartMonitoringAsync(string configKey, HardwareSpecification config)
         {
             Global.LogDebug($"Starting monitoring job for Key: {configKey}");
-            if (_activeMonitors.ContainsKey(configKey))
+            if (_activeDevices.ContainsKey(configKey))
                 throw new InvalidOperationException($"Hardware job {configKey} is already running.");
 
-            CancellationTokenSource cts = new();
-            _activeMonitors.TryAdd(configKey, cts);
+            ActiveDeviceState state = new()
+            {
+                Provider = HardwareProviderFactory.Create(config.Protocol),
+                Cts = new CancellationTokenSource()
+            };
 
-            _ = Task.Run(() => MonitorDeviceProcess(configKey, config, cts.Token), cts.Token);
+            _activeDevices.TryAdd(configKey, state);
+
+            _ = Task.Run(() => MonitorDeviceProcess(configKey, config, state), state.Cts.Token);
+        }
+
+        // NEW: The Write Method
+        public async Task<bool> WriteToDeviceAsync(string configKey, byte[] payload)
+        {
+            if (_activeDevices.TryGetValue(configKey, out ActiveDeviceState? state))
+            {
+                Global.LogDebug($"Dispatching write command to {configKey}.");
+                return await state.Provider.WriteAsync(payload);
+            }
+
+            Global.LogError($"Cannot write. Device {configKey} is not currently active.", null);
+            return false;
         }
 
         public void StopMonitoring(string configKey)
         {
             Global.LogDebug($"Stopping monitoring job for Key: {configKey}");
-            if (_activeMonitors.TryRemove(configKey, out CancellationTokenSource? cts))
+            if (_activeDevices.TryRemove(configKey, out ActiveDeviceState? state))
             {
-                cts.Cancel();
-                cts.Dispose();
+                state.Cts.Cancel();
+                state.Cts.Dispose();
+                // Note: The DisposeAsync on the provider happens safely inside the Monitor loop's finally block
             }
         }
 
-        private async Task MonitorDeviceProcess(string configKey, HardwareSpecification config, CancellationToken ct)
+        private async Task MonitorDeviceProcess(string configKey, HardwareSpecification config, ActiveDeviceState state)
         {
-            await using IHardwareProvider provider = HardwareProviderFactory.Create(config.Protocol);
             try
             {
-                await provider.ConnectAsync(config, ct);
-                await foreach (var rawBytes in provider.SubscribeAsync(ct))
+                await state.Provider.ConnectAsync(config, state.Cts.Token);
+                await foreach (byte[] rawBytes in state.Provider.SubscribeAsync(state.Cts.Token))
                 {
-                    // Push to the internal messaging queue instantly
                     await _bus.PublishAsync(new HardwareEvent
                     {
                         ConfigKey = configKey,
@@ -60,6 +83,10 @@ namespace tiny.Hardware.Core.Engine
             catch (Exception ex)
             {
                 Global.LogError($"Device for {configKey} disconnected unexpectedly.", ex);
+            }
+            finally
+            {
+                await state.Provider.DisposeAsync();
             }
         }
     }
