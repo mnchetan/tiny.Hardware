@@ -2,66 +2,177 @@
 
 ## Overview
 
-**tiny.Hardware** is an enterprise-grade, configuration-driven hardware integration gateway built on .NET 10. 
+**tiny.Hardware** is an enterprise-grade, configuration-driven hardware integration gateway built on **.NET 10**.
 
-While tools like `tiny.WebApi` standardize "Data at Rest" (Databases, APIs), `tiny.Hardware` standardizes **"Data in Motion."** It abstracts the physical complexity of edge devices—such as TCP barcode scanners, Modbus PLCs, and RS-232 serial scales—into a unified, plug-and-play stream processor. 
+While frameworks such as `tiny.WebApi` standardize **Data at Rest** (databases, APIs, and services), `tiny.Hardware` standardizes **Data in Motion**. It abstracts the complexity of edge devices—including TCP barcode scanners, Modbus PLCs, weighing scales, and serial devices—into a unified, plug-and-play event processing platform.
 
-By defining physical hardware connections in a simple JSON file and injecting dynamic processing plugins at runtime, this engine completely decouples your core logistics and WMS (Warehouse Management System) applications from proprietary hardware protocols.
+By defining hardware connections in a simple JSON configuration file and loading processing plugins dynamically at runtime, the framework completely decouples business applications, WMS platforms, and logistics systems from proprietary hardware protocols.
 
----
-
-## 🏗️ Core Architecture
-
-The system is designed to handle high-frequency hardware events without thread starvation or memory leaks.
-
-1. **Configuration-Driven:** Hardware nodes are defined in a JSON file (`hardware.dev.json`). The API resolves connections, protocols, and data-parsing strategies entirely from this file.
-2. **Internal Message Bus (Backpressure Management):** Uses `System.Threading.Channels` as an ultra-fast internal memory queue. If a high-speed scanner blasts 1,000 events per second, the hardware socket reads them instantly and drops them onto the bus, preventing the API from crashing or dropping packets while the background service processes them at its own pace.
-3. **Dynamic Plugin Execution:** Raw bytes from hardware can be parsed using `DefaultFallbackEncoding` (e.g., ASCII, HEX, UTF8) or sent through a custom `.dll` plugin loaded dynamically via .NET Reflection (`ExternalAssemblyExecutionHelper`).
-4. **State Management:** Devices are actively monitored using `CancellationToken` logic, allowing endpoints to cleanly start and stop long-lived TCP streams without leaving "zombie sockets" open.
+The result is a scalable, maintainable, and vendor-agnostic hardware integration layer that can be deployed at warehouse edges, manufacturing facilities, distribution centers, or cloud-connected industrial environments.
 
 ---
 
-## 📂 Project Structure
+## Features
 
-The solution enforces a strict separation of concerns between the core engine, the executing host, and external testing tools.
+### Configuration-Driven Hardware Integration
+
+Add or modify hardware devices without changing application code. Hardware definitions, communication settings, and processing behavior are managed entirely through configuration.
+
+### High-Throughput Event Processing
+
+Built on `System.Threading.Channels` to provide an efficient internal message bus capable of handling thousands of hardware events per second while maintaining system responsiveness.
+
+### Dynamic Plugin Architecture
+
+Raw hardware data can be processed using built-in encoding strategies or custom processing plugins loaded dynamically through .NET Reflection.
+
+### Protocol Abstraction
+
+Provides a unified programming model for multiple communication protocols, allowing applications to interact with hardware consistently regardless of the underlying transport.
+
+### Long-Running Connection Management
+
+Uses `CancellationToken`-based lifecycle management to safely start, stop, and monitor persistent hardware connections.
+
+### Cloud and Edge Ready
+
+Supports deployment as:
+
+- ASP.NET Core Web API
+- Windows Service
+- Linux Service (systemd)
+- Docker Container
+- Kubernetes Workload
+
+---
+
+## Core Architecture
+
+The framework is designed to process high-frequency hardware events while maintaining reliability, scalability, and operational stability.
+
+### Configuration Layer
+
+Hardware definitions are stored in `hardware.dev.json`.
+
+The framework resolves:
+
+- Communication protocol
+- Connection parameters
+- Processing strategy
+- Plugin implementation
+- Data encoding format
+
+entirely from configuration.
+
+### Hardware Providers
+
+Protocol-specific providers establish and maintain communication with physical devices.
+
+| Protocol | Mode | Typical Use Cases |
+|-----------|--------|-------------------|
+| TCP/IP | Stream | Barcode scanners, vision systems |
+| Modbus TCP | Poll | PLCs, conveyors, industrial controllers |
+| Serial (RS-232/RS-485) | Stream | Weighing scales, legacy hardware |
+| Mock | Stream/Poll | Development and testing |
+
+### Internal Message Bus
+
+The framework uses `System.Threading.Channels` as a high-performance in-memory event bus.
+
+When hardware emits data:
+
+1. Providers receive data.
+2. Events are published to the internal channel.
+3. Background workers consume events asynchronously.
+4. Processing plugins transform raw payloads into business-ready events.
+
+This architecture prevents hardware communication threads from being blocked by downstream processing workloads.
+
+### Processing Pipeline
+
+Incoming hardware data can be processed using:
+
+- Built-in encoding handlers
+- Reflection-based plugin execution
+- Custom external assemblies
+
+### Lifecycle Management
+
+All long-running hardware operations are controlled through managed cancellation tokens, ensuring:
+
+- Graceful shutdowns
+- Safe resource cleanup
+- Reliable reconnection strategies
+- No orphaned connections
+
+---
+
+## Solution Structure
 
 ```text
 📦 tiny.Hardware (Solution)
- ┣ 📂 tiny.Hardware.Core (Class Library - The Engine)
- ┃ ┣ 📂 Bus             # Internal System.Threading.Channels queue (HardwareEvent.cs, InternalHardwareBus.cs)
- ┃ ┣ 📂 Configurations  # Interfaces mapping the JSON dictionary (ITinyHardwareConfigurations.cs)
- ┃ ┣ 📂 DataObjects     # Core configuration models (HardwareSpecification.cs)
- ┃ ┣ 📂 Engine          # State management and socket orchestration (HardwareOrchestrator.cs)
- ┃ ┣ 📂 Extensions      # Dynamic plugin loading logic (ProcessHardwareDataExtensions.cs)
- ┃ ┗ 📂 Providers       # Protocol implementations (Tcp, Modbus, Serial, Mock) & Factory
- ┃
- ┣ 📂 tiny.Hardware.Api (ASP.NET Core Web API - The Host)
- ┃ ┣ 📂 Controllers     # REST endpoints for Start/Stop commands (HardwareController.cs)
- ┃ ┣ 📂 Plugins         # Native Mock Parsers for local testing
- ┃ ┣ 📂 Services        # IHostedService processing the internal queue (HardwareProcessorService.cs)
- ┃ ┣ 📝 hardware.dev.json # The master hardware configuration dictionary
- ┃ ┗ 📄 Program.cs      # DI Registration and Config Loading
- ┃
- ┗ 📂 tiny.Hardware.Simulator (Console App)
-   ┗ 📄 Program.cs      # Standalone TCP server emitting mock barcode/weight data for testing
 
-    ⚙️ Configuration (`hardware.dev.json`)
+┣ 📂 tiny.Hardware.Core
+┃ ┣ 📂 Bus
+┃ ┃ ┣ 📄 HardwareEvent.cs
+┃ ┃ ┗ 📄 InternalHardwareBus.cs
+┃ ┃
+┃ ┣ 📂 Configurations
+┃ ┃ ┗ 📄 ITinyHardwareConfigurations.cs
+┃ ┃
+┃ ┣ 📂 DataObjects
+┃ ┃ ┗ 📄 HardwareSpecification.cs
+┃ ┃
+┃ ┣ 📂 Engine
+┃ ┃ ┗ 📄 HardwareOrchestrator.cs
+┃ ┃
+┃ ┣ 📂 Extensions
+┃ ┃ ┗ 📄 ProcessHardwareDataExtensions.cs
+┃ ┃
+┃ ┗ 📂 Providers
+┃   ┣ 📄 TcpHardwareProvider.cs
+┃   ┣ 📄 ModbusHardwareProvider.cs
+┃   ┣ 📄 SerialHardwareProvider.cs
+┃   ┣ 📄 MockHardwareProvider.cs
+┃   ┗ 📄 HardwareProviderFactory.cs
+┃
+┣ 📂 tiny.Hardware.Api
+┃ ┣ 📂 Controllers
+┃ ┃ ┗ 📄 HardwareController.cs
+┃ ┃
+┃ ┣ 📂 Plugins
+┃ ┃ ┗ 📄 Sample Processing Plugins
+┃ ┃
+┃ ┣ 📂 Services
+┃ ┃ ┗ 📄 HardwareProcessorService.cs
+┃ ┃
+┃ ┣ 📝 hardware.dev.json
+┃ ┃
+┃ ┗ 📄 Program.cs
+┃
+┗ 📂 tiny.Hardware.Simulator
+  ┗ 📄 Program.cs
+```
 
-The engine requires **zero code changes** to add new hardware. Simply define a unique key (for example, `Scanner1_TCP`) and specify its connection parameters.
+---
 
- Plugin Segregation Logic
+## Configuration (`hardware.dev.json`)
 
-The engine uses a segregated three-part pathing system for external plugins:
+The framework requires **zero code changes** to onboard new hardware.
 
-| Property                    | Description                                                                                      |
-| --------------------------- | ------------------------------------------------------------------------------------------------ |
-| `ExternalDllPath`           | Physical folder containing the plugin DLL. If empty, the native executing assembly path is used. |
-| `ExternalDllName`           | Plugin DLL file name. If empty, execution occurs natively via reflection.                        |
-| `FullyQualifiedNameOfClass` | Fully qualified class name to instantiate.                                                       |
+Simply define a unique hardware identifier and specify the communication and processing settings.
 
-Sample Configuration
+### Plugin Loading Configuration
 
-json
+| Property | Description |
+|-----------|-------------|
+| `ExternalDllPathImplementingIProcessHardwareData_PostProcessing` | Directory containing the plugin assembly. If empty, the current application assembly is used. |
+| `ExternalDllNameImplementingIProcessHardwareData_PostProcessing` | Name of the plugin DLL to load. |
+| `FullyQualifiedNameOfClass_PostProcessing` | Fully qualified class name implementing the processing logic. |
+
+### Sample Configuration
+
+```json
 {
   "Scanner1_TCP": {
     "Query": "ContinuousRead",
@@ -91,110 +202,181 @@ json
     "FullyQualifiedNameOfClass_PostProcessing": "tiny.Hardware.Api.Plugins.ScaleMockParser"
   }
 }
-
+```
 
 ---
 
-# 🚀 API Usage & Endpoints
+## API Endpoints
 
-Hardware streams are controlled through standard HTTP `POST` requests. Each endpoint references the unique hardware key defined in the configuration file.
+Hardware devices are controlled through REST endpoints exposed by the API.
 
-## Start Hardware Streams
+Each endpoint references a unique hardware key defined in `hardware.dev.json`.
 
-Starting a stream provisions the appropriate worker and begins piping data into the internal processing bus.
+### Start Hardware
 
-### Scanner (TCP/IP)
+#### TCP Scanner
 
 ```http
-GET http://localhost:5168/api/Hardware/Start/Scanner1_TCP
+GET /api/Hardware/Start/Scanner1_TCP
 ```
 
-### Conveyor (Modbus)
+#### Modbus Device
 
 ```http
-GET http://localhost:5168/api/Hardware/Start/Conveyor_Modbus
+GET /api/Hardware/Start/Conveyor_Modbus
 ```
 
-### Scale (Serial Port)
+#### Serial Device
 
 ```http
-GET http://localhost:5168/api/Hardware/Start/Scale_Serial
+GET /api/Hardware/Start/Scale_Serial
 ```
 
-## Stop Hardware Streams
+### Stop Hardware
 
-Stopping a stream triggers the `CancellationToken`, ensuring connections are closed cleanly and resources are released properly.
+#### TCP Scanner
 
 ```http
-GET http://localhost:5168/api/Hardware/Stop/Scanner1_TCP
-GET http://localhost:5168/api/Hardware/Stop/Conveyor_Modbus
-GET http://localhost:5168/api/Hardware/Stop/Scale_Serial
+GET /api/Hardware/Stop/Scanner1_TCP
 ```
 
-### Write back to the hardware
+#### Modbus Device
 
 ```http
-POST http://localhost:5168/api/Hardware/Write/Scanner_Mock
+GET /api/Hardware/Stop/Conveyor_Modbus
+```
+
+#### Serial Device
+
+```http
+GET /api/Hardware/Stop/Scale_Serial
+```
+
+### Write Data to Hardware
+
+```http
+POST /api/Hardware/Write/Scanner_Mock
 Content-Type: application/json
+
 {
   "Data": "RESET_COMMAND_01",
   "EncodingFormat": "ASCII"
 }
 ```
+
 ---
 
-# 🖥️ Running & Testing Locally
+## Running Locally
 
-## 1. Launch the Simulator
+### 1. Start the Simulator
 
-Run **tiny.Hardware.Simulator**.
+Run:
 
-The simulator starts a console application that listens on **Port 9000** and waits for incoming connections.
+```bash
+tiny.Hardware.Simulator
+```
 
-## 2. Launch the API
+The simulator starts a TCP server listening on port `9000`.
 
-Run **tiny.Hardware.Api**.
+### 2. Start the API
 
-During startup, the application loads the hardware configuration from `hardware.dev.json` into memory.
+Run:
 
-## 3. Start a Hardware Connection
+```bash
+tiny.Hardware.Api
+```
 
-Use **Postman**, **Insomnia**, **curl**, or the built-in **Swagger UI** to invoke the scanner start endpoint:
+During startup the application:
+
+1. Loads hardware configuration.
+2. Registers hardware providers.
+3. Initializes background services.
+4. Starts the processing pipeline.
+
+### 3. Start a Hardware Stream
+
+Using Swagger, Postman, Insomnia, or curl:
 
 ```http
 GET http://localhost:5168/api/Hardware/Start/Scanner1_TCP
 ```
 
-### Expected Output
-
-#### Simulator Console
-
-The simulator accepts the connection and begins transmitting payloads such as:
+### Expected Simulator Output
 
 ```text
 BOX_ID=10001
 WEIGHT=12.45
+BOX_ID=10002
+WEIGHT=10.18
 ```
 
-#### API Console
+### Processing Flow
 
-The API:
+```text
+TCP Scanner
+      │
+      ▼
+Hardware Provider
+      │
+      ▼
+InternalHardwareBus
+      │
+      ▼
+HardwareProcessorService
+      │
+      ▼
+Processing Plugin
+      │
+      ▼
+Business Event
+```
 
-1. Receives packets through the `TcpHardwareProvider`.
-2. Publishes them to the `InternalHardwareBus`.
-3. Processes them via `HardwareProcessorService`.
-4. Applies the configured parsing plugin.
-5. Outputs structured, normalized hardware events.
+The framework:
+
+1. Receives data from hardware.
+2. Publishes events to the internal channel.
+3. Processes events asynchronously.
+4. Executes configured plugins.
+5. Produces structured business-ready output.
 
 ---
 
-# 🌐 Hosting & Deployment
+## Creating Custom Processing Plugins
 
-`tiny.Hardware` is built on **.NET BackgroundService** and **Kestrel**, making it deployment agnostic and suitable for both edge and cloud environments.
+```csharp
+public sealed class ScannerParser : IProcessHardwareData
+{
+    public Task<object?> ProcessAsync(
+        string hardwareKey,
+        byte[] payload,
+        CancellationToken cancellationToken)
+    {
+        string barcode = Encoding.ASCII.GetString(payload);
 
-## Windows Service
+        return Task.FromResult<object?>(
+            new
+            {
+                Hardware = hardwareKey,
+                Barcode = barcode,
+                Timestamp = DateTime.UtcNow
+            });
+    }
+}
+```
 
-The application supports Windows Service hosting out of the box:
+After compiling the assembly:
+
+1. Deploy the DLL.
+2. Update `hardware.dev.json`.
+3. Restart the service.
+
+No framework code changes are required.
+
+---
+
+## Hosting and Deployment
+
+### Windows Service
 
 ```csharp
 builder.Host.UseWindowsService();
@@ -202,20 +384,82 @@ builder.Host.UseWindowsService();
 
 Benefits:
 
-* Native Windows Service installation
-* Automatic startup after reboot
-* Suitable for warehouse edge gateways and Windows Server deployments
-* Minimal operational overhead
+- Automatic startup after reboot
+- Native Windows Service integration
+- Ideal for warehouse edge deployments
 
-## Docker & Kubernetes
+### Linux Service (systemd)
 
-The application is stateless and configuration-driven.
+```csharp
+builder.Host.UseSystemd();
+```
 
-Because all runtime settings are loaded from mounted JSON configuration files, it can be easily:
+Benefits:
 
-* Containerized with Docker
-* Deployed to Kubernetes clusters
-* Hosted behind Nginx or other reverse proxies
-* Scaled independently of hardware integrations
+- Native Linux service management
+- Centralized logging
+- Automatic restart policies
 
-This deployment model mirrors the architecture and deployment strategy used by `tiny.WebApi`.
+### Docker
+
+The framework is fully containerizable and can be deployed using standard Docker images and mounted configuration files.
+
+### Kubernetes
+
+Because all runtime behavior is configuration-driven and the application remains stateless, it can be deployed using:
+
+- ConfigMaps
+- Secrets
+- Persistent Volumes
+- Horizontal scaling strategies
+
+---
+
+## Design Goals
+
+- Eliminate hardware-specific code from business applications
+- Standardize communication across heterogeneous devices
+- Support high-throughput event processing
+- Enable plug-and-play hardware onboarding
+- Provide enterprise-grade reliability
+- Support cloud-native and edge deployments
+
+---
+
+## Technology Stack
+
+- .NET 10
+- ASP.NET Core
+- Background Services
+- System.Threading.Channels
+- TCP/IP Networking
+- Modbus TCP
+- Serial Communications (RS-232 / RS-485)
+- Reflection-Based Plugin Loading
+- Dependency Injection
+- Configuration-Driven Architecture
+
+---
+
+## Related Projects
+
+### tiny.WebApi
+
+Standardized access to:
+
+- Databases
+- APIs
+- Files
+- External systems
+
+### tiny.Hardware
+
+Standardized access to:
+
+- Barcode scanners
+- PLCs
+- Weighing scales
+- Industrial hardware
+- Edge devices
+
+Together they provide a complete platform for managing both **Data at Rest** and **Data in Motion**.
