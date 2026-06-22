@@ -45,11 +45,11 @@ The solution enforces a strict separation of concerns between the core engine, t
  ┗ 📂 tiny.Hardware.Simulator (Console App)
    ┗ 📄 Program.cs      # Standalone TCP server emitting mock barcode/weight data for testing
 
-   ## ⚙️ Configuration (`hardware.dev.json`)
+    ⚙️ Configuration (`hardware.dev.json`)
 
 The engine requires **zero code changes** to add new hardware. Simply define a unique key (for example, `Scanner1_TCP`) and specify its connection parameters.
 
-### Plugin Segregation Logic
+ Plugin Segregation Logic
 
 The engine uses a segregated three-part pathing system for external plugins:
 
@@ -59,9 +59,9 @@ The engine uses a segregated three-part pathing system for external plugins:
 | `ExternalDllName`           | Plugin DLL file name. If empty, execution occurs natively via reflection.                        |
 | `FullyQualifiedNameOfClass` | Fully qualified class name to instantiate.                                                       |
 
-### Sample Configuration
+Sample Configuration
 
-```json
+json
 {
   "Scanner1_TCP": {
     "Query": "ContinuousRead",
@@ -91,7 +91,7 @@ The engine uses a segregated three-part pathing system for external plugins:
     "FullyQualifiedNameOfClass_PostProcessing": "tiny.Hardware.Api.Plugins.ScaleMockParser"
   }
 }
-```
+
 
 ---
 
