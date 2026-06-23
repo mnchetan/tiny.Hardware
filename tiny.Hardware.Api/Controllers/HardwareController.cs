@@ -33,6 +33,7 @@ namespace tiny.Hardware.Api.Controllers
         /// <param name="key"></param>
         /// <returns></returns>
         [HttpGet("Start/{key}")]
+        [HttpOptions]
         public async Task<IActionResult> Start(string key)
         {
             // We can still use Global from the NuGet package for logging!
@@ -51,6 +52,7 @@ namespace tiny.Hardware.Api.Controllers
         /// <param name="key"></param>
         /// <returns></returns>
         [HttpGet("Stop/{key}")]
+        [HttpOptions]
         public IActionResult Stop(string key)
         {
             _orchestrator.StopMonitoring(key);
@@ -63,6 +65,7 @@ namespace tiny.Hardware.Api.Controllers
         /// <param name="payload"></param>
         /// <returns></returns>
         [HttpPost("Write/{key}")]
+        [HttpOptions]
         public async Task<IActionResult> Write(string key, [FromBody] HardwareWritePayload payload)
         {
             Global.LogDebug($"Received Write Request for Hardware Config Key: {key}");

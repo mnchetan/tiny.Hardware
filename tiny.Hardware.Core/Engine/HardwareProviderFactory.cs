@@ -24,6 +24,7 @@ namespace tiny.Hardware.Core.Engine
                 "tcpip" => new TcpHardwareProvider(),
                 "modbus" => new ModbusHardwareProvider(),
                 "serial" => new SerialHardwareProvider(),
+                "mock" => new MockHardwareProvider(), // <--- THIS MUST BE HERE
                 _ => throw new NotSupportedException($"Protocol {protocol} is not supported.")
             };
         }

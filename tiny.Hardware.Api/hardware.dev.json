@@ -40,5 +40,15 @@
     "ExternalDllPathImplementingIProcessHardwareData_PostProcessing": "",
     "ExternalDllNameImplementingIProcessHardwareData_PostProcessing": "",
     "FullyQualifiedNameOfClass_PostProcessing": "tiny.Hardware.Api.Plugins.ScaleMockParser"
+  },
+  "Scanner_Mock": {
+    "ExecutionType": "Stream",
+    "Protocol": "Mock",
+    "IpAddress": "0.0.0.0",
+    "Port": 0,
+    "DefaultFallbackEncoding": "ASCII",
+    "ExternalDllPathImplementingIProcessHardwareData_PostProcessing": "",
+    "ExternalDllNameImplementingIProcessHardwareData_PostProcessing": "",
+    "FullyQualifiedNameOfClass_PostProcessing": "tiny.Hardware.Api.Plugins.ScannerMockParser"
   }
 }

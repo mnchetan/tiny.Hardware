@@ -1,0 +1,53 @@
+<div style="padding: 20px; font-family: Arial, sans-serif; max-width: 900px; margin: auto;">
+  <h2>tiny.Hardware Control Panel</h2>
+
+  <!-- CONTROL BAR -->
+  <div style="background: #f4f4f4; padding: 15px; border-radius: 5px; margin-bottom: 20px;">
+    <label><strong>Select Device: </strong></label>
+    <select [(ngModel)]="selectedDevice" style="padding: 5px; margin-right: 15px;">
+      <option *ngFor="let device of availableDevices" [value]="device">{{ device }}</option>
+    </select>
+
+    <button (click)="onStart()" style="padding: 8px 15px; background: #28a745; color: white; border: none; cursor: pointer; margin-right: 10px;">
+      Start Listening
+    </button>
+    <button (click)="onStop()" style="padding: 8px 15px; background: #dc3545; color: white; border: none; cursor: pointer;">
+      Stop Listening
+    </button>
+  </div>
+
+  <!-- WRITE BAR -->
+  <div style="background: #e9ecef; padding: 15px; border-radius: 5px; margin-bottom: 20px; display: flex; align-items: center; gap: 10px;">
+    <label><strong>Send Command: </strong></label>
+    <input type="text" [(ngModel)]="writePayload" placeholder="e.g. RESET_01" style="padding: 5px; flex: 1;">
+    
+    <select [(ngModel)]="writeEncoding" style="padding: 5px;">
+      <option value="ASCII">ASCII</option>
+      <option value="HEX">HEX</option>
+      <option value="UTF8">UTF8</option>
+    </select>
+
+    <button (click)="onWrite()" style="padding: 8px 15px; background: #007bff; color: white; border: none; cursor: pointer;">
+      Send to Device
+    </button>
+  </div>
+
+  <!-- LIVE FEED -->
+  <div>
+    <div style="display: flex; justify-content: space-between; align-items: center;">
+      <h3>Live Hardware Feed</h3>
+      <button (click)="clearLogs()" style="padding: 5px 10px; cursor: pointer;">Clear Feed</button>
+    </div>
+    
+    <div style="border: 1px solid #ccc; background: #222; color: #0f0; height: 400px; overflow-y: auto; padding: 10px; font-family: monospace;">
+      <div *ngIf="liveMessages.length === 0" style="color: #888; font-style: italic;">
+        Waiting for hardware events...
+      </div>
+      <div *ngFor="let msg of liveMessages" style="margin-bottom: 8px; border-bottom: 1px dashed #444; padding-bottom: 4px;">
+        <span style="color: #ffc107;">[{{ msg.timestamp | date:'HH:mm:ss.SSS' }}]</span> 
+        <span style="color: #17a2b8;">[{{ msg.configKey }}]</span> : 
+        <span>{{ msg.data }}</span>
+      </div>
+    </div>
+  </div>
+</div>

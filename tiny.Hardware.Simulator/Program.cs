@@ -1,19 +1,15 @@
 ﻿using System.Net;
 using System.Net.Sockets;
 using System.Text;
+
 /// PROACTIVE NOTE: This is a simple TCP server that simulates an overhead scanner by sending formatted box scan data to a connected client (the WMS API) every few seconds. It includes proactive checks to detect if the client has disconnected and handles exceptions gracefully to allow for continuous testing of the WMS API's ability to handle hardware interactions, including connection drops and reconnections, without crashing the simulator.
 namespace tiny.Hardware.Simulator
 {
     /// <summary>
-    /// The Program class serves as the entry point for the mock hardware simulator application. It creates a TCP server that listens for incoming connections from the WMS API on a specified port. Once a connection is established, it simulates the behavior of an overhead scanner by emitting box scan data at regular intervals. The simulator handles disconnections gracefully, allowing it to reset and wait for new connections without crashing. This class demonstrates how to create a simple TCP server in C# that can be used to simulate hardware interactions for testing purposes within the tiny.Hardware framework.
+    /// The Program class serves as the entry point for the mock hardware simulator application.
     /// </summary>
     internal class Program
     {
-        /// <summary>
-        /// The Main method is the entry point of the application. It sets up a TCP server that listens for incoming connections from the WMS API on port 9000. When a connection is established, it enters a loop to simulate box scans by sending formatted data to the connected client every 3 seconds. The method includes proactive checks to detect if the client has disconnected and handles exceptions gracefully to ensure that the simulator can reset and wait for new connections without crashing. This allows for continuous testing of the WMS API's ability to handle hardware interactions, including connection drops and reconnections, in a robust manner.
-        /// </summary>
-        /// <param name="args"></param>
-        /// <returns></returns>
 #pragma warning disable IDE0060 // Remove unused parameter
         private static async Task Main(string[] args)
 #pragma warning restore IDE0060 // Remove unused parameter
@@ -29,16 +25,38 @@ namespace tiny.Hardware.Simulator
             {
                 Console.WriteLine("\n[Mock Scanner] Waiting for WMS API connection...");
                 using TcpClient client = await server.AcceptTcpClientAsync();
-                Console.WriteLine("[Mock Scanner] WMS API Connected! Simulating box scans...");
+                Console.WriteLine("[Mock Scanner] WMS API Connected! Simulating bi-directional flow...");
                 using NetworkStream stream = client.GetStream();
+                // =========================================================================
+                // NEW: START THE BACKGROUND LISTENER FOR INCOMING COMMANDS (RX)
+                // =========================================================================
+                _ = Task.Run(async () =>
+                {
+                    byte[] buffer = new byte[1024];
+                    try
+                    {
+                        while (true)
+                        {
+                            int bytesRead = await stream.ReadAsync(buffer);
+                            if (bytesRead == 0) break; // Client disconnected
+                            string receivedData = Encoding.ASCII.GetString(buffer, 0, bytesRead).Trim();
+                            Console.WriteLine($"\n  <-- RECEIVED FROM API: {receivedData}");
+                            // Formulate and send the ACK back over the TCP pipe
+                            string ackMessage = $"TCP_ACK_RECEIVED: [{receivedData}]\r\n";
+                            byte[] ackBytes = Encoding.ASCII.GetBytes(ackMessage);
+                            await stream.WriteAsync(ackBytes);
+                        }
+                    }
+                    catch { /* Connection dropped, handled gracefully by the main loop */ }
+                });
+                // =========================================================================
+
                 try
                 {
-                    // Inner loop sends data as long as the connection is alive
-                    // Inner loop sends data as long as the connection is alive
+                    // Inner loop sends data as long as the connection is alive (TX)
                     while (true)
                     {
                         await Task.Delay(3000);
-
                         // PROACTIVE CHECK: Did the WMS API quietly drop the connection?
                         // This checks if the socket has been closed by the host before we try to write to it.
                         if (client.Client.Poll(0, SelectMode.SelectRead) && client.Client.Available == 0)
