@@ -64,4 +64,8 @@ export class HardwareService {
       });
     });
   }
+  // NEW: Fetch the list of devices from the C# configuration
+  public getAvailableDevices() {
+    return this.http.get<string[]>(`${this.apiUrl}/Available`);
+  }
 }

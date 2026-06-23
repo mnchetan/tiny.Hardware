@@ -111,5 +111,19 @@ namespace tiny.Hardware.Api.Controllers
             }
             return bytes;
         }
+        /// <summary>
+        /// Fetches a list of available hardware device keys from the configurations. This endpoint allows clients to retrieve all the keys that correspond to different hardware specifications defined in the application. By providing this list, clients can dynamically discover which hardware devices are supported and available for interaction, enabling them to make informed decisions about which devices to start monitoring or send commands to. The response is a simple list of strings representing the keys of the available hardware devices.
+        /// </summary>
+        /// <returns></returns>
+        // =========================================================
+        // NEW: Endpoint to fetch available device keys
+        // =========================================================
+        [HttpGet("Available")]
+        public IActionResult GetAvailableDevices()
+        {
+            // Extract only the string keys (e.g., "Scanner_Mock", "Scanner1_TCP")
+            List<string> devices = _configurations.HardwareSpecifications.Keys.ToList();
+            return Ok(devices);
+        }
     }
 }

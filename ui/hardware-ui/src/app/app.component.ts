@@ -8,9 +8,9 @@ import { Subscription } from 'rxjs';
   styleUrls: ['./app.component.css']
 })
 export class AppComponent implements OnInit, OnDestroy {
-  // Available devices from your hardware.dev.json
-  public availableDevices: string[] = ['Scanner1_TCP', 'Conveyor_Modbus', 'Scale_Serial','Scanner_Mock'];
-  public selectedDevice: string = 'Scanner1_TCP';
+  // Empty arrays waiting for API data
+  public availableDevices: string[] = [];
+  public selectedDevice: string = '';
   
   public writePayload: string = '';
   public writeEncoding: string = 'ASCII';
@@ -21,10 +21,21 @@ export class AppComponent implements OnInit, OnDestroy {
   constructor(private hardwareService: HardwareService) {}
 
   ngOnInit(): void {
-    // Subscribe to real-time SignalR updates
+    // 1. Fetch available devices dynamically
+    this.hardwareService.getAvailableDevices().subscribe({
+      next: (devices: string[]) => {
+        this.availableDevices = devices;
+        // Auto-select the first device in the list if available
+        if (this.availableDevices.length > 0) {
+          this.selectedDevice = this.availableDevices[0];
+        }
+      },
+      error: (err) => console.error('Failed to load available hardware configurations', err)
+    });
+
+    // 2. Subscribe to real-time SignalR updates
     this.updateSub = this.hardwareService.hardwareUpdates$.subscribe((msg: HardwareMessage) => {
-      this.liveMessages.unshift(msg); // Push to top of the array
-      // Keep only the last 50 messages to prevent browser memory leaks
+      this.liveMessages.unshift(msg); 
       if (this.liveMessages.length > 50) {
         this.liveMessages.pop();
       }
@@ -38,6 +49,7 @@ export class AppComponent implements OnInit, OnDestroy {
   }
 
   onStart() {
+    if (!this.selectedDevice) return;
     this.hardwareService.startDevice(this.selectedDevice).subscribe({
       next: (res: any) => console.log(res.message),
       error: (err) => console.error(err)
@@ -45,6 +57,7 @@ export class AppComponent implements OnInit, OnDestroy {
   }
 
   onStop() {
+    if (!this.selectedDevice) return;
     this.hardwareService.stopDevice(this.selectedDevice).subscribe({
       next: (res: any) => console.log(res.message),
       error: (err) => console.error(err)
@@ -52,21 +65,16 @@ export class AppComponent implements OnInit, OnDestroy {
   }
 
   onWrite() {
-    if (!this.writePayload) return;
+    if (!this.writePayload || !this.selectedDevice) return;
     
     this.hardwareService.writeToDevice(this.selectedDevice, this.writePayload, this.writeEncoding).subscribe({
       next: (res: any) => {
-        // Log the successful API call
         console.log('Write success', res);
-        
-        // NEW: Echo the outgoing command manually to the UI feed
         this.liveMessages.unshift({
           configKey: this.selectedDevice,
           data: `[TX OUT] Sent command: ${this.writePayload}`,
           timestamp: new Date()
         });
-
-        // Clear the input box
         this.writePayload = ''; 
       },
       error: (err) => {
